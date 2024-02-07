@@ -44,7 +44,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          repository: https://gitee.com/distbuild/bazel-buildfarm-release.git
+          github-server-url: https://gitee.com
+          repository: distbuild/bazel-buildfarm-release
           ref: 'main'
           ssh-key: ${{ secrets.GITEE_DISTBUILD_PRIVATE_KEY }}
           token: ${{ secrets.GITEE_DISTBUILD_TOKEN }}
