@@ -36,6 +36,7 @@ jobs:
             bazel-bin/src/main/java/build/buildfarm/tools/*_deploy.jar
   push:
     name: Pushed on ${{matrix.os}}
+    needs: [ release ]
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
