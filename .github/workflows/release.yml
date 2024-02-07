@@ -49,7 +49,7 @@ jobs:
           ref: 'main'
           repository: distbuild/bazel-buildfarm-release
           ssh-key: ${{ secrets.GITEE_DISTBUILD_PRIVATE_KEY }}
-          ssh-strict: false
+          ssh-strict: 'false'
           token: ${{ secrets.GITEE_DISTBUILD_TOKEN }}
       - uses: actions/download-artifact@v4
         with:
