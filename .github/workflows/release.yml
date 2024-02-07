@@ -3,7 +3,7 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
     tags:
       - v*
 
@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ ubuntu-20.04 ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +30,30 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: bazel-buildfarm
+          name: bazel-buildfarm-artifact
           path: |
             bazel-bin/src/main/java/build/buildfarm/*_deploy.jar
             bazel-bin/src/main/java/build/buildfarm/tools/*_deploy.jar
+  push:
+    name: Pushed on ${{matrix.os}}
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ ubuntu-20.04 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          repository: https://gitee.com/distbuild/bazel-buildfarm-release.git
+          ref: 'main'
+          ssh-key: ${{ secrets.GITEE_DISTBUILD_PRIVATE_KEY }}
+          token: ${{ secrets.GITEE_DISTBUILD_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: bazel-buildfarm-artifact
+      - name: Push
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "angersax@sina.com"
+          git commit -a -m "feat[gh]: updated from distbuild/bazel-buildfarm on gh"
+          git push origin main
