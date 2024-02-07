@@ -41,22 +41,12 @@ jobs:
       matrix:
         os: [ ubuntu-20.04 ]
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          github-server-url: https://gitee.com
-          path: 'bazel-buildfarm-release'
-          ref: 'main'
-          repository: distbuild/bazel-buildfarm-release
-          ssh-key: ${{ secrets.GITEE_DISTBUILD_PRIVATE_KEY }}
-          ssh-strict: 'false'
-          token: ${{ secrets.GITEE_DISTBUILD_TOKEN }}
       - uses: actions/download-artifact@v4
         with:
           name: bazel-buildfarm-artifact
       - name: Push
         run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "angersax@sina.com"
-          git commit -a -m "feat[gh]: updated from distbuild/bazel-buildfarm on gh"
-          git push origin main
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "angersax@sina.com"
+          echo $PWD
+          ls -a
