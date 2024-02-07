@@ -45,9 +45,11 @@ jobs:
         with:
           fetch-depth: 1
           github-server-url: https://gitee.com
-          repository: distbuild/bazel-buildfarm-release
+          path: 'bazel-buildfarm-release'
           ref: 'main'
+          repository: distbuild/bazel-buildfarm-release
           ssh-key: ${{ secrets.GITEE_DISTBUILD_PRIVATE_KEY }}
+          ssh-strict: false
           token: ${{ secrets.GITEE_DISTBUILD_TOKEN }}
       - uses: actions/download-artifact@v4
         with:
