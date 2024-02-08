@@ -47,7 +47,12 @@ jobs:
           name: bazel-buildfarm-artifact
       - name: Push
         run: |
-          git config --global user.name "GitHub Actions Bot"
+          git clone https://gitee.com/distbuild/bazel-buildfarm-release.git
+          git config --global user.name "craftslab"
           git config --global user.email "angersax@sina.com"
-          echo $PWD
-          ls -a
+          cp -r *.jar tools -t bazel-buildfarm-release
+          pushd bazel-buildfarm-release || exit 1
+          git add .
+          git commit -m "feat[gh]: updated from https://github.com/${{github.repository}}/commit/${{github.sha}}"
+          git push https://craftslab:${{ secrets.GITEE_DISTBUILD_TOKEN }}@gitee.com/distbuild/bazel-buildfarm-release.git --all
+          popd || exit 1
