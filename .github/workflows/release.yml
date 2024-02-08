@@ -1,10 +1,3 @@
-## GitHub Actions
-
-
-
-### Actions
-
-```yam
 ---
 name: Release
 
@@ -57,19 +50,9 @@ jobs:
           git clone https://gitee.com/distbuild/bazel-buildfarm-release.git
           git config --global user.name "craftslab"
           git config --global user.email "angersax@sina.com"
-          cp -r *.jar tools/*.jar -t bazel-buildfarm-release
+          cp -r *.jar tools -t bazel-buildfarm-release
           pushd bazel-buildfarm-release || exit 1
           git add .
           git commit -m "feat[gh]: updated from https://github.com/${{github.repository}}/commit/${{github.sha}}"
           git push https://craftslab:${{ secrets.GITEE_DISTBUILD_TOKEN }}@gitee.com/distbuild/bazel-buildfarm-release.git --all
           popd || exit 1
-```
-
-See [distbuild-bazel-buildfarm-actions](https://github.com/distbuild/bazel-buildfarm/blob/main/.github/workflows/release.yml)
-
-
-
-### Reference
-
-- [distbuild-bazel-buildfarm-actions](https://github.com/distbuild/bazel-buildfarm/blob/main/.github/workflows/release.yml)
-- [distbuild-reclient-actions](https://github.com/distbuild/reclient/blob/main/.github/workflows/release.yml)
