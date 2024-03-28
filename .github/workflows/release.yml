@@ -3,7 +3,9 @@ name: Release
 
 on:
   push:
-    branches: [ main, dev ]
+    branches:
+      - main
+      - v*
     tags:
       - v*
 
