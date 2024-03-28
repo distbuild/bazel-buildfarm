@@ -4,9 +4,9 @@ name: Release
 on:
   push:
     branches:
-      - *
+      - "*"
     tags:
-      - *
+      - "*"
 
 jobs:
   release:
