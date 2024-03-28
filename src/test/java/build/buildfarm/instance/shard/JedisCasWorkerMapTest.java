@@ -20,6 +20,7 @@ import redis.clients.jedis.JedisCluster;
 
 @RunWith(JUnit4.class)
 public class JedisCasWorkerMapTest {
+
   private static final String CAS_PREFIX = "ContentAddressableStorage";
 
   private RedisServer redisServer;

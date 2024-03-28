@@ -15,7 +15,7 @@ spec:
   minReplicas: {{ .Values.shardWorker.autoscaling.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
-    kind: StatefulSet
+    kind: Deployment
     name:  {{ include "buildfarm.fullname" . }}-shard-worker
   targetCPUUtilizationPercentage: {{ .Values.shardWorker.autoscaling.targetCPUUtilizationPercentage }}
 {{- end }}

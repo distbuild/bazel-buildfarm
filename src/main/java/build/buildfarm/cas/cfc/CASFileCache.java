@@ -92,7 +92,6 @@ import io.grpc.Deadline;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
-import io.netty.handler.codec.http.QueryStringDecoder;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
@@ -100,8 +99,6 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.file.FileAlreadyExistsException;
@@ -609,20 +606,6 @@ public abstract class CASFileCache implements ContentAddressableStorage {
 
   private static final int CHUNK_SIZE = 128 * 1024;
 
-  private static boolean shouldReadThrough(RequestMetadata requestMetadata) {
-    try {
-      URI uri = new URI(requestMetadata.getCorrelatedInvocationsId());
-      QueryStringDecoder decoder = new QueryStringDecoder(uri);
-      return decoder
-          .parameters()
-          .getOrDefault("THROUGH", ImmutableList.of("false"))
-          .get(0)
-          .equals("true");
-    } catch (URISyntaxException e) {
-      return false;
-    }
-  }
-
   @Override
   public void get(
       Compressor.Value compressor,
@@ -631,28 +614,9 @@ public abstract class CASFileCache implements ContentAddressableStorage {
       long count,
       ServerCallStreamObserver<ByteString> blobObserver,
       RequestMetadata requestMetadata) {
-    boolean readThrough = shouldReadThrough(requestMetadata);
     InputStream in;
     try {
-      if (readThrough && !contains(digest, /* result=*/ null)) {
-        // really need to be able to reuse/restart the same write over
-        // multiple requests - if we get successive read throughs for a single
-        // digest, we should pick up from where we were last time
-        // Also servers should affinitize
-        // And share data, so that they can pick the same worker to pull from
-        // if possible.
-        Write write = getWrite(compressor, digest, UUID.randomUUID(), requestMetadata);
-        blobObserver.setOnCancelHandler(write::reset);
-        in =
-            new ReadThroughInputStream(
-                newExternalInput(compressor, digest, 0),
-                localOffset -> newTransparentInput(compressor, digest, localOffset),
-                digest.getSizeBytes(),
-                offset,
-                write);
-      } else {
-        in = newInput(compressor, digest, offset);
-      }
+      in = newInput(compressor, digest, offset);
     } catch (IOException e) {
       blobObserver.onError(e);
       return;
@@ -1953,7 +1917,7 @@ public abstract class CASFileCache implements ContentAddressableStorage {
       lock = keyLocks.get(key);
     } catch (ExecutionException e) {
       // impossible without exception instantiating lock
-      throw new RuntimeException(e.getCause());
+      throw new RuntimeException(e);
     }
 
     lock.lock();

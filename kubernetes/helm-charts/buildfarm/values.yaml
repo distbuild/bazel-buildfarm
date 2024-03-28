@@ -27,6 +27,16 @@ config:
     recordBesEvents: true
   worker:
     port: 8982
+    publicName: "localhost:8982"
+    executeStageWidth: 80
+    inputFetchStageWidth: 8
+    realInputDirectories:
+      - "external"
+    root: "/tmp/worker"
+    storages:
+      - type: FILESYSTEM
+        path: "cache"
+        maxSizeBytes: 536870912000 # 500 * 1024 * 1024 * 1024
 
 server:
   image:
@@ -131,25 +141,22 @@ shardWorker:
     type: ClusterIP
     port: 8982
 
-  #nodeSelector: {}
-  #tolerations: []
-  #affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraVolumes: []
+    # - name: additionalSecret
+    #   secret:
+    #   secretName: my-secret
+    #   defaultMode: 0600
 
-  #extraVolumes:
-  # - name: additionalSecret
-  #   secret:
-  #   secretName: my-secret
-  #   defaultMode: 0600
-
-  #extraVolumeMounts:
-  # - name: customConfig
-  #   mountPath: /mnt/config
-  #   readOnly: true
-
+  extraVolumeMounts: []
+    # - name: customConfig
+    #   mountPath: /mnt/config
+    #   readOnly: true
   extraEnv:
   - name: JAVABIN
     value: "/usr/bin/java"
-
   serviceMonitor:
     ## If true, a ServiceMonitor CRD is created for a prometheus operator
     ## https://github.com/coreos/prometheus-operator
@@ -172,10 +179,19 @@ redis:
   ## - set to `false` if using `externalRedis.*`
   ##
   enabled: true
-  auth:
+  scheme: "redis"
+  ## See more redis configs: https://github.com/bitnami/charts/blob/main/bitnami/redis/README.md
+  usePassword: false
+  ## configs for redis cluster mode
+  ##
+  cluster:
+    ## if redis runs in cluster mode
+    ##
     enabled: false
-  replica:
-    replicaCount: 1
+
+    ## the number of redis slaves
+    ##
+    slaveCount: 1
 
 externalRedis:
   uri: "redis://localhost:6379"

@@ -26,7 +26,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.exceptions.JedisClusterMaxAttemptsException;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 @RunWith(JUnit4.class)
@@ -75,23 +74,5 @@ public class RedisClientTest {
       status = Status.fromThrowable(e);
     }
     assertThat(status.getCode()).isEqualTo(Code.DEADLINE_EXCEEDED);
-  }
-
-  @Test
-  public void runJedisClusterMaxAttemptsExceptionIsUnavailable() {
-    RedisClient client = new RedisClient(mock(JedisCluster.class));
-    Status status = Status.UNKNOWN;
-    try {
-      JedisClusterMaxAttemptsException jcoe =
-          new JedisClusterMaxAttemptsException("No more cluster attempts left.");
-      jcoe.addSuppressed(new JedisConnectionException(new SocketException("Connection reset")));
-      client.run(
-          jedis -> {
-            throw jcoe;
-          });
-    } catch (IOException e) {
-      status = Status.fromThrowable(e);
-    }
-    assertThat(status.getCode()).isEqualTo(Code.UNAVAILABLE);
   }
 }

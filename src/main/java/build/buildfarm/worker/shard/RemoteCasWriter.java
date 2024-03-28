@@ -21,7 +21,6 @@ import static java.util.concurrent.TimeUnit.DAYS;
 import build.bazel.remote.execution.v2.Compressor;
 import build.bazel.remote.execution.v2.Digest;
 import build.bazel.remote.execution.v2.RequestMetadata;
-import build.buildfarm.backplane.Backplane;
 import build.buildfarm.common.Size;
 import build.buildfarm.common.Write;
 import build.buildfarm.common.grpc.Retrier;
@@ -49,13 +48,13 @@ import lombok.extern.java.Log;
 
 @Log
 public class RemoteCasWriter implements CasWriter {
-  private final Backplane backplane;
+  private final Set<String> workerSet;
   private final LoadingCache<String, Instance> workerStubs;
   private final Retrier retrier;
 
   public RemoteCasWriter(
-      Backplane backplane, LoadingCache<String, Instance> workerStubs, Retrier retrier) {
-    this.backplane = backplane;
+      Set<String> workerSet, LoadingCache<String, Instance> workerStubs, Retrier retrier) {
+    this.workerSet = workerSet;
     this.workerStubs = workerStubs;
     this.retrier = retrier;
   }
@@ -84,7 +83,6 @@ public class RemoteCasWriter implements CasWriter {
     String workerName = getRandomWorker();
     Write write = getCasMemberWrite(digest, workerName);
 
-    write.reset();
     try {
       return streamIntoWriteFuture(in, write, digest).get();
     } catch (ExecutionException e) {
@@ -116,19 +114,20 @@ public class RemoteCasWriter implements CasWriter {
   }
 
   private String getRandomWorker() throws IOException {
-    Set<String> workerSet = backplane.getStorageWorkers();
-    if (workerSet.isEmpty()) {
-      throw new IOException("no available workers");
+    synchronized (workerSet) {
+      if (workerSet.isEmpty()) {
+        throw new IOException("no available workers");
+      }
+      Random rand = new Random();
+      int index = rand.nextInt(workerSet.size());
+      // best case no allocation average n / 2 selection
+      Iterator<String> iter = workerSet.iterator();
+      String worker = null;
+      while (iter.hasNext() && index-- >= 0) {
+        worker = iter.next();
+      }
+      return worker;
     }
-    Random rand = new Random();
-    int index = rand.nextInt(workerSet.size());
-    // best case no allocation average n / 2 selection
-    Iterator<String> iter = workerSet.iterator();
-    String worker = null;
-    while (iter.hasNext() && index-- >= 0) {
-      worker = iter.next();
-    }
-    return worker;
   }
 
   private Instance workerStub(String worker) {

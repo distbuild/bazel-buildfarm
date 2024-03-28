@@ -20,8 +20,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import build.bazel.remote.execution.v2.Action;
 import build.bazel.remote.execution.v2.ActionCacheGrpc.ActionCacheImplBase;
@@ -321,7 +320,7 @@ public class StubInstanceTest {
     ImmutableList<Digest> digests =
         ImmutableList.of(DIGEST_UTIL.compute(first), DIGEST_UTIL.compute(last));
     assertThat(instance.putAllBlobs(blobs, RequestMetadata.getDefaultInstance()))
-        .containsAtLeastElementsIn(digests);
+        .containsAllIn(digests);
   }
 
   @Test
@@ -420,7 +419,7 @@ public class StubInstanceTest {
     assertThat(ioException).isNotNull();
     Status status = Status.fromThrowable(ioException);
     assertThat(status.getCode()).isEqualTo(Code.UNAVAILABLE);
-    verifyNoInteractions(out);
+    verifyZeroInteractions(out);
     instance.stop();
   }
 
@@ -492,7 +491,7 @@ public class StubInstanceTest {
     assertThat(ioException).isNotNull();
     Status status = Status.fromThrowable(ioException);
     assertThat(status.getCode()).isEqualTo(Code.DEADLINE_EXCEEDED);
-    verifyNoInteractions(out);
+    verifyZeroInteractions(out);
     instance.stop();
   }
 
@@ -511,7 +510,7 @@ public class StubInstanceTest {
     verify(mockBlobObserver, times(1)).setOnReadyHandler(onReadyCaptor.capture());
     // call it
     onReadyCaptor.getValue().run();
-    // verify no more interactions with mockRequestStream
-    verifyNoMoreInteractions(mockRequestStream);
+    // verify zero interactions with mockRequestStream
+    verifyZeroInteractions(mockRequestStream);
   }
 }

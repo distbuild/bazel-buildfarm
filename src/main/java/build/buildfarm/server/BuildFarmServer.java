@@ -41,8 +41,8 @@ import build.buildfarm.server.services.PublishBuildEventService;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.health.v1.HealthCheckResponse.ServingStatus;
-import io.grpc.protobuf.services.HealthStatusManager;
 import io.grpc.protobuf.services.ProtoReflectionService;
+import io.grpc.services.HealthStatusManager;
 import io.grpc.util.TransmitStatusRuntimeExceptionInterceptor;
 import io.prometheus.client.Counter;
 import java.io.File;
@@ -55,6 +55,7 @@ import javax.naming.ConfigurationException;
 import lombok.extern.java.Log;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+@SuppressWarnings("deprecation")
 @Log
 public class BuildFarmServer extends LoggingMain {
   private static final java.util.logging.Logger nettyLogger =
@@ -87,19 +88,20 @@ public class BuildFarmServer extends LoggingMain {
    */
   public void prepareServerForGracefulShutdown() {
     if (configs.getServer().getGracefulShutdownSeconds() == 0) {
-      log.severe("Graceful Shutdown is not enabled. Server is shutting down immediately.");
+      System.err.println(
+          String.format("Graceful Shutdown is not enabled. Server is shutting down immediately."));
     } else {
       try {
-        log.info(
+        System.err.println(
             String.format(
                 "Graceful Shutdown - Waiting %d to allow connections to drain.",
                 configs.getServer().getGracefulShutdownSeconds()));
         SECONDS.sleep(configs.getServer().getGracefulShutdownSeconds());
       } catch (InterruptedException e) {
-        log.severe(
+        System.err.println(
             "Graceful Shutdown - The server graceful shutdown is interrupted: " + e.getMessage());
       } finally {
-        log.info(
+        System.err.println(
             String.format(
                 "Graceful Shutdown - It took the server %d seconds to shutdown",
                 configs.getServer().getGracefulShutdownSeconds()));
@@ -193,10 +195,8 @@ public class BuildFarmServer extends LoggingMain {
   private void shutdown() throws InterruptedException {
     log.info("*** shutting down gRPC server since JVM is shutting down");
     prepareServerForGracefulShutdown();
-    if (healthStatusManager != null) {
-      healthStatusManager.setStatus(
-          HealthStatusManager.SERVICE_NAME_ALL_SERVICES, ServingStatus.NOT_SERVING);
-    }
+    healthStatusManager.setStatus(
+        HealthStatusManager.SERVICE_NAME_ALL_SERVICES, ServingStatus.NOT_SERVING);
     PrometheusPublisher.stopHttpServer();
     healthCheckMetric.labels("stop").inc();
     try {

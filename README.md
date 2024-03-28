@@ -1,10 +1,6 @@
 # Bazel Buildfarm
 
 ![Build status](https://badge.buildkite.com/45f4fd4c0cfb95f7705156a4119641c6d5d6c310452d6e65a4.svg?branch=main)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bazelbuild/bazel-buildfarm/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bazelbuild/bazel-buildfarm)
-![GitHub License](https://img.shields.io/github/license/bazelbuild/bazel-buildfarm)
-![GitHub Release](https://img.shields.io/github/v/release/bazelbuild/bazel-buildfarm)
-
 
 This repository hosts the [Bazel](https://bazel.build) remote caching and execution system.
 
@@ -135,18 +131,4 @@ Optionally, if you want to use the buildfarm docker container image targets, you
 load("@build_buildfarm//:images.bzl", "buildfarm_images")
 
 buildfarm_images()
-```
-
-### Helm Chart
-
-To install with helm:
-
-```bash
-# https://github.com/bazelbuild/bazel-buildfarm/releases/download/helm%2F0.3.0/buildfarm-0.3.0.tgz
-CHART_VER="0.3.0"
-helm install \
-  -n bazel-buildfarm \
-  --create-namespace \
-  bazel-buildfarm \
-  "https://github.com/bazelbuild/bazel-buildfarm/releases/download/helm%2F${CHART_VER}/buildfarm-${CHART_VER}.tgz"
 ```

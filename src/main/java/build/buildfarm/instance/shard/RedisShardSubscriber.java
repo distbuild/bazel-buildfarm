@@ -20,7 +20,6 @@ import static java.lang.String.format;
 
 import build.buildfarm.instance.server.WatchFuture;
 import build.buildfarm.v1test.OperationChange;
-import build.buildfarm.v1test.ShardWorker;
 import build.buildfarm.v1test.WorkerChange;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
@@ -28,10 +27,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.longrunning.Operation;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
-import com.google.protobuf.util.Timestamps;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -61,13 +59,13 @@ class RedisShardSubscriber extends JedisPubSub {
   }
 
   private final ListMultimap<String, TimedWatchFuture> watchers;
-  private final Map<String, ShardWorker> workers;
+  private final Set<String> workers;
   private final String workerChannel;
   private final Executor executor;
 
   RedisShardSubscriber(
       ListMultimap<String, TimedWatchFuture> watchers,
-      Map<String, ShardWorker> workers,
+      Set<String> workers,
       String workerChannel,
       Executor executor) {
     this.watchers = watchers;
@@ -252,28 +250,23 @@ class RedisShardSubscriber extends JedisPubSub {
                 workerChange.getName(), workerChange.getEffectiveAt()));
         break;
       case ADD:
-        addWorker(workerChange);
+        addWorker(workerChange.getName());
         break;
       case REMOVE:
-        removeWorker(workerChange);
+        removeWorker(workerChange.getName());
         break;
     }
   }
 
-  void addWorker(WorkerChange workerChange) {
+  void addWorker(String worker) {
     synchronized (workers) {
-      workers.put(
-          workerChange.getName(),
-          ShardWorker.newBuilder()
-              .setEndpoint(workerChange.getName())
-              .setFirstRegisteredAt(Timestamps.toMillis(workerChange.getAdd().getEffectiveAt()))
-              .build());
+      workers.add(worker);
     }
   }
 
-  boolean removeWorker(WorkerChange workerChange) {
+  boolean removeWorker(String worker) {
     synchronized (workers) {
-      return workers.remove(workerChange.getName()) != null;
+      return workers.remove(worker);
     }
   }
 

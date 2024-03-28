@@ -1,8 +1,9 @@
-load("@buildifier_prebuilt//:rules.bzl", "buildifier")
+load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_docker//java:image.bzl", "java_image")
 load("@io_bazel_rules_docker//docker/package_managers:download_pkgs.bzl", "download_pkgs")
 load("@io_bazel_rules_docker//docker/package_managers:install_pkgs.bzl", "install_pkgs")
-load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_push")
+load("@io_bazel_rules_docker//container:container.bzl", "container_image")
+load("@rules_oss_audit//oss_audit:java/oss_audit.bzl", "oss_audit")
 load("//:jvm_flags.bzl", "server_jvm_flags", "worker_jvm_flags")
 
 package(default_visibility = ["//visibility:public"])
@@ -119,7 +120,7 @@ sh_binary(
 java_image(
     name = "buildfarm-server",
     args = ["/app/build_buildfarm/examples/config.minimal.yml"],
-    base = "@amazon_corretto_java_image_base//image",
+    base = "@ubuntu-mantic//image",
     classpath_resources = [
         "//src/main/java/build/buildfarm:configs",
     ],
@@ -134,6 +135,12 @@ java_image(
         ":telemetry_tools",
         "//src/main/java/build/buildfarm/server",
     ],
+)
+
+oss_audit(
+    name = "buildfarm-server-audit",
+    src = "//src/main/java/build/buildfarm:buildfarm-server",
+    tags = ["audit"],
 )
 
 # A worker image may need additional packages installed that are not in the base image.
@@ -183,24 +190,8 @@ java_image(
     ],
 )
 
-# Below targets push public docker images to bazelbuild dockerhub.
-
-container_push(
-    name = "public_push_buildfarm-server",
-    format = "Docker",
-    image = ":buildfarm-server",
-    registry = "index.docker.io",
-    repository = "bazelbuild/buildfarm-server",
-    tag = "$(release_version)",
-    tags = ["container"],
-)
-
-container_push(
-    name = "public_push_buildfarm-worker",
-    format = "Docker",
-    image = ":buildfarm-shard-worker",
-    registry = "index.docker.io",
-    repository = "bazelbuild/buildfarm-worker",
-    tag = "$(release_version)",
-    tags = ["container"],
+oss_audit(
+    name = "buildfarm-shard-worker-audit",
+    src = "//src/main/java/build/buildfarm:buildfarm-shard-worker",
+    tags = ["audit"],
 )

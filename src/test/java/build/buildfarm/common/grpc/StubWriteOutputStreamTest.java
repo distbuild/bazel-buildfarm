@@ -17,6 +17,10 @@ package build.buildfarm.common.grpc;
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -36,7 +40,6 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcCleanupRule;
-import io.grpc.util.MutableHandlerRegistry;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -46,27 +49,37 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockitoAnnotations;
 
 @RunWith(JUnit4.class)
 public class StubWriteOutputStreamTest {
   @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
 
-  private final MutableHandlerRegistry serviceRegistry = new MutableHandlerRegistry();
+  @SuppressWarnings("unchecked")
+  private final StreamObserver<WriteRequest> writeObserver = mock(StreamObserver.class);
+
+  private final ByteStreamImplBase serviceImpl =
+      mock(
+          ByteStreamImplBase.class,
+          delegatesTo(
+              new ByteStreamImplBase() {
+                @Override
+                public StreamObserver<WriteRequest> write(
+                    StreamObserver<WriteResponse> responseObserver) {
+                  return writeObserver;
+                }
+              }));
 
   private Channel channel;
 
   @Before
   public void setUp() throws Exception {
-    MockitoAnnotations.initMocks(this);
-
     String serverName = InProcessServerBuilder.generateName();
 
     grpcCleanup
         .register(
             InProcessServerBuilder.forName(serverName)
-                .fallbackHandlerRegistry(serviceRegistry)
                 .directExecutor()
+                .addService(serviceImpl)
                 .build())
         .start();
 
@@ -78,22 +91,28 @@ public class StubWriteOutputStreamTest {
   @Test
   public void resetExceptionsAreInterpreted() {
     String unimplementedResourceName = "unimplemented-resource";
+    QueryWriteStatusRequest unimplementedRequest =
+        QueryWriteStatusRequest.newBuilder().setResourceName(unimplementedResourceName).build();
+    doAnswer(
+            invocation -> {
+              StreamObserver<QueryWriteStatusResponse> observer = invocation.getArgument(1);
+              observer.onError(Status.UNIMPLEMENTED.asException());
+              return null;
+            })
+        .when(serviceImpl)
+        .queryWriteStatus(eq(unimplementedRequest), any(StreamObserver.class));
+
     String notFoundResourceName = "not-found-resource";
-    serviceRegistry.addService(
-        new ByteStreamImplBase() {
-          @Override
-          public void queryWriteStatus(
-              QueryWriteStatusRequest request,
-              StreamObserver<QueryWriteStatusResponse> responseObserver) {
-            if (request.getResourceName().equals(unimplementedResourceName)) {
-              responseObserver.onError(Status.UNIMPLEMENTED.asException());
-            } else if (request.getResourceName().equals(notFoundResourceName)) {
-              responseObserver.onError(Status.NOT_FOUND.asException());
-            } else {
-              responseObserver.onError(Status.INVALID_ARGUMENT.asException());
-            }
-          }
-        });
+    QueryWriteStatusRequest notFoundRequest =
+        QueryWriteStatusRequest.newBuilder().setResourceName(notFoundResourceName).build();
+    doAnswer(
+            invocation -> {
+              StreamObserver<QueryWriteStatusResponse> observer = invocation.getArgument(1);
+              observer.onError(Status.NOT_FOUND.asException());
+              return null;
+            })
+        .when(serviceImpl)
+        .queryWriteStatus(eq(notFoundRequest), any(StreamObserver.class));
 
     StubWriteOutputStream write =
         new StubWriteOutputStream(
@@ -104,6 +123,8 @@ public class StubWriteOutputStreamTest {
             /* expectedSize=*/ StubWriteOutputStream.UNLIMITED_EXPECTED_SIZE,
             /* autoflush=*/ true);
     assertThat(write.getCommittedSize()).isEqualTo(0);
+    verify(serviceImpl, times(1))
+        .queryWriteStatus(eq(unimplementedRequest), any(StreamObserver.class));
 
     write =
         new StubWriteOutputStream(
@@ -114,20 +135,12 @@ public class StubWriteOutputStreamTest {
             /* expectedSize=*/ StubWriteOutputStream.UNLIMITED_EXPECTED_SIZE,
             /* autoflush=*/ true);
     assertThat(write.getCommittedSize()).isEqualTo(0);
+    verify(serviceImpl, times(1)).queryWriteStatus(eq(notFoundRequest), any(StreamObserver.class));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void resetIsRespectedOnSubsequentWrite() throws IOException {
-    StreamObserver<WriteRequest> writeObserver = mock(StreamObserver.class);
-    serviceRegistry.addService(
-        new ByteStreamImplBase() {
-          @Override
-          public StreamObserver<WriteRequest> write(
-              StreamObserver<WriteResponse> responseObserver) {
-            return writeObserver;
-          }
-        });
     String resourceName = "reset-resource";
     StubWriteOutputStream write =
         new StubWriteOutputStream(
@@ -143,6 +156,7 @@ public class StubWriteOutputStreamTest {
       write.reset();
       content.writeTo(out);
     }
+    verify(serviceImpl, times(1)).write(any(StreamObserver.class));
     ArgumentCaptor<WriteRequest> writeRequestCaptor = ArgumentCaptor.forClass(WriteRequest.class);
     verify(writeObserver, times(3)).onNext(writeRequestCaptor.capture());
     List<WriteRequest> requests = writeRequestCaptor.getAllValues();

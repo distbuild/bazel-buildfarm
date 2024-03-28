@@ -330,11 +330,7 @@ public class BalancedRedisQueue {
     }
 
     // build proto
-    return QueueStatus.newBuilder()
-        .setName(RedisHashtags.hashedName(name, originalHashtag))
-        .setSize(size)
-        .addAllInternalSizes(sizes)
-        .build();
+    return QueueStatus.newBuilder().setName(name).setSize(size).addAllInternalSizes(sizes).build();
   }
 
   /**

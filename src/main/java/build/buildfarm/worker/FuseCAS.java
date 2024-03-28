@@ -547,9 +547,6 @@ public class FuseCAS extends FuseStubFS {
       return -ErrorCodes.ENOENT();
     }
 
-    // stock block size
-    stat.st_blksize.set(4096);
-
     if (entry.isSymlink()) {
       stat.st_mode.set(FileStat.S_IFLNK | 0777);
     } else if (entry.isDirectory()) {
@@ -557,13 +554,9 @@ public class FuseCAS extends FuseStubFS {
     } else {
       int mode = entry.isExecutable() ? 0555 : 0444;
       stat.st_mode.set(FileStat.S_IFREG | mode);
-      stat.st_nlink.set(1); // should fix this for number of digests pointing to it
+      stat.st_nlink.set(1);
+      stat.st_size.set(entry.size());
     }
-    long size = entry.size();
-    long blksize = stat.st_blksize.get();
-    long blocks = (size + blksize - 1) / blksize;
-    stat.st_size.set(size);
-    stat.st_blocks.set(blocks);
     return 0;
   }
 

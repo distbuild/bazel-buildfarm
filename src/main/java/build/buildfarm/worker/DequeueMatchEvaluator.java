@@ -46,7 +46,6 @@ public class DequeueMatchEvaluator {
    * @brief Decide whether the worker should keep the operation or put it back on the queue.
    * @details Compares the platform properties of the worker to the operation's platform properties.
    * @param workerProvisions The provisions of the worker.
-   * @param name Worker name.
    * @param resourceSet The limited resources that the worker has available.
    * @param queueEntry An entry recently removed from the queue.
    * @return Whether or not the worker should accept or reject the queue entry.
@@ -68,7 +67,6 @@ public class DequeueMatchEvaluator {
    * @details Compares the platform properties of the worker to the platform properties of the
    *     operation.
    * @param workerProvisions The provisions of the worker.
-   * @param name Worker name.
    * @param resourceSet The limited resources that the worker has available.
    * @param platform The platforms of operation.
    * @return Whether or not the worker should accept or reject the operation.
@@ -80,8 +78,17 @@ public class DequeueMatchEvaluator {
       SetMultimap<String, String> workerProvisions,
       LocalResourceSet resourceSet,
       Platform platform) {
-    return satisfiesProperties(workerProvisions, platform)
-        && LocalResourceSetUtils.claimResources(platform, resourceSet);
+    // attempt to execute everything the worker gets off the queue,
+    // provided there is enough resources to do so.
+    // this is a recommended configuration.
+    if (!LocalResourceSetUtils.claimResources(platform, resourceSet)) {
+      return false;
+    }
+    if (configs.getWorker().getDequeueMatchSettings().isAcceptEverything()) {
+      return true;
+    }
+
+    return satisfiesProperties(workerProvisions, platform);
   }
 
   /**
@@ -119,8 +126,7 @@ public class DequeueMatchEvaluator {
   private static boolean satisfiesProperty(
       SetMultimap<String, String> workerProvisions, Platform.Property property) {
     // validate min cores
-    if (property.getName().equals(ExecutionProperties.CORES)
-        || property.getName().equals(ExecutionProperties.MIN_CORES)) {
+    if (property.getName().equals(ExecutionProperties.MIN_CORES)) {
       if (!workerProvisions.containsKey(ExecutionProperties.CORES)) {
         return false;
       }
@@ -152,13 +158,13 @@ public class DequeueMatchEvaluator {
       return possibleMemories >= memBytesRequested;
     }
 
-    // ensure exact matches
-    if (workerProvisions.containsKey(property.getName())) {
-      return workerProvisions.containsEntry(property.getName(), property.getValue())
-          || workerProvisions.containsEntry(property.getName(), "*");
+    // accept other properties not specified on the worker
+    if (configs.getWorker().getDequeueMatchSettings().isAllowUnmatched()) {
+      return true;
     }
 
-    // accept other properties not specified on the worker
-    return configs.getWorker().getDequeueMatchSettings().isAllowUnmatched();
+    // ensure exact matches
+    return workerProvisions.containsEntry(property.getName(), property.getValue())
+        || workerProvisions.containsEntry(property.getName(), "*");
   }
 }

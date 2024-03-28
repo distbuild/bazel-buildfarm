@@ -238,7 +238,7 @@ class Executor {
 
     ByteStreamStub bsStub = ByteStreamGrpc.newStub(channel);
     for (Digest missingDigest : missingDigests) {
-      Path path = blobsDir.resolve(missingDigest.getHash());
+      Path path = blobsDir.resolve(missingDigest.getHash() + "_" + missingDigest.getSizeBytes());
       if (missingDigest.getSizeBytes() < Size.mbToBytes(1)) {
         Request request =
             Request.newBuilder()

@@ -209,16 +209,6 @@ public class ServerInstance extends NodeInstance {
   // Other metrics from the backplane
   private static final Gauge workerPoolSize =
       Gauge.build().name("worker_pool_size").help("Active worker pool size.").register();
-  private static final Gauge storageWorkerPoolSize =
-      Gauge.build()
-          .name("storage_worker_pool_size")
-          .help("Active storage worker pool size.")
-          .register();
-  private static final Gauge executeWorkerPoolSize =
-      Gauge.build()
-          .name("execute_worker_pool_size")
-          .help("Active execute worker pool size.")
-          .register();
   private static final Gauge queueSize =
       Gauge.build().name("queue_size").labelNames("queue_name").help("Queue size.").register();
 
@@ -521,8 +511,6 @@ public class ServerInstance extends NodeInstance {
                   TimeUnit.SECONDS.sleep(30);
                   BackplaneStatus backplaneStatus = backplaneStatus();
                   workerPoolSize.set(backplaneStatus.getActiveWorkersCount());
-                  executeWorkerPoolSize.set(backplaneStatus.getActiveExecuteWorkersCount());
-                  storageWorkerPoolSize.set(backplaneStatus.getActiveStorageWorkersCount());
                   dispatchedOperationsSize.set(backplaneStatus.getDispatchedSize());
                   preQueueSize.set(backplaneStatus.getPrequeue().getSize());
                   updateQueueSizes(backplaneStatus.getOperationQueue().getProvisionsList());
@@ -807,7 +795,7 @@ public class ServerInstance extends NodeInstance {
             .immutableCopy();
     if (!workersToBeRemoved.isEmpty()) {
       try {
-        log.log(Level.FINE, format("adjusting locations for the digest %s", digest));
+        log.log(Level.INFO, format("adjusting locations for the digest %s", digest));
         backplane.adjustBlobLocations(digest, Collections.emptySet(), workersToBeRemoved);
       } catch (IOException e) {
         log.log(
@@ -1667,7 +1655,6 @@ public class ServerInstance extends NodeInstance {
           }
         },
         directExecutor());
-    write.reset(); // prevents a queryWriteStatus at index 0
     try (OutputStream out = write.getOutput(timeout.getSeconds(), SECONDS, () -> {})) {
       content.writeTo(out);
     } catch (IOException e) {

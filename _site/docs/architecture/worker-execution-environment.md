@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Worker Execution Environment
+title: Workers
 parent: Architecture
 nav_order: 3
 ---

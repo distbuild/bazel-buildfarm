@@ -74,23 +74,20 @@ spec:
               readOnly: true
             - mountPath: /tmp/worker
               name: {{ include "buildfarm.fullname" . }}-shard-worker-data
-            {{- with .Values.shardWorker.extraVolumeMounts }}
-            {{- tpl (toYaml .) $ | nindent 12 -}}
-            {{- end }}
-
+          {{- with .Values.extraVolumeMounts }}
+          {{- tpl (toYaml .) $ | nindent 12 -}}
+          {{- end }}
       {{- with .Values.shardWorker.nodeSelector }}
       nodeSelector:
-        {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
-
       {{- with .Values.shardWorker.affinity }}
       affinity:
-        {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
-
       {{- with .Values.shardWorker.tolerations }}
       tolerations:
-        {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
         - configMap:

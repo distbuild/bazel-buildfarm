@@ -76,13 +76,6 @@ public class ResourceLimits {
   public ContainerSettings containerSettings = new ContainerSettings();
 
   /**
-   * @field cgroups
-   * @brief Whether to use cgroups for resource limitation.
-   * @details Decides whether to use cgroups for restricting cores, mem, etc.
-   */
-  public boolean cgroups = true;
-
-  /**
    * @field cpu
    * @brief Resource limitations on CPUs.
    * @details Decides specific CPU limitations and whether to apply them for a given action.
@@ -163,17 +156,4 @@ public class ResourceLimits {
    * @details This can be used to debug execution behavior.
    */
   public final ArrayList<String> description = new ArrayList<>();
-  /**
-   * @field persistentWorkerKey
-   * @brief Hash of tool inputs for remote persistent workers
-   * @details See https://github.com/bazelbuild/bazel/issues/10091
-   */
-  public String persistentWorkerKey = "";
-
-  /**
-   * @field persistentWorkerCommand
-   * @brief Command string to start the persistent worker
-   * @details See https://github.com/bazelbuild/bazel/issues/10091
-   */
-  public String persistentWorkerCommand = "";
 }
