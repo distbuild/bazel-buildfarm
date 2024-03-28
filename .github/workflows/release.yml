@@ -4,10 +4,9 @@ name: Release
 on:
   push:
     branches:
-      - main
-      - v*
+      - *
     tags:
-      - v*
+      - *
 
 jobs:
   release:
